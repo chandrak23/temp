@@ -1,0 +1,24 @@
+.register-data-source-form {
+    .k-form-legend {
+        &.heading {
+            background-color: #00052b;
+            color: #ffffff;
+            text-align: center;
+            padding: 10px 0;
+            text-transform: capitalize;
+            font-size: 18px;
+        }
+    }
+
+    .k-form-buttons {
+        background-color: #ccc;
+        padding: 10px;
+        justify-content: right;
+    }
+    .primary-btn {
+        background-color: #00052b;
+    }
+    width: 100%;
+    // margin: 0 auto;
+    // .k-form-field { width: 45% }
+}

@@ -1,0 +1,192 @@
+import * as React from 'react';
+import { Badge, BadgeContainer } from '@progress/kendo-react-indicators';
+import {
+  GridColumnMenuSort,
+  GridColumnMenuFilter,
+  GridColumnMenuGroup,
+
+} from '@progress/kendo-react-grid';
+
+import { ProgressBar } from '@progress/kendo-react-progressbars';
+import { Rating } from '@progress/kendo-react-inputs';
+
+interface BadgeCellProps {
+    dataItem: {
+      is_online: boolean;
+    };
+    tdProps: React.HTMLAttributes<HTMLTableCellElement>;
+  }
+
+  interface BudgetCellProps {
+    dataItem: {
+      target?: number;
+    };
+    tdProps: React.HTMLAttributes<HTMLTableCellElement>;
+  }
+
+  interface ColumnMenuProps {
+    // Define your props if needed
+  }
+
+export const BadgeCell: React.FC<BadgeCellProps> = ({ dataItem, ...props }: BadgeCellProps) => {
+  const isOnline = dataItem.is_online;
+
+  return (
+    <td {...props.tdProps}>
+      <BadgeContainer>
+        {isOnline ? (
+          <Badge size="small" themeColor="success" cutoutBorder={true}>
+            <span>Online</span>
+          </Badge>
+        ) : (
+          <Badge
+            size="small"
+            align={{
+              vertical: 'bottom',
+              horizontal: 'end',
+            }}
+            themeColor="error"
+            cutoutBorder={true}
+          >
+            <span>Offline</span>
+          </Badge>
+        )}
+      </BadgeContainer>
+    </td>
+  );
+};
+
+export const BudgetCell: React.FC<BudgetCellProps> = ({ dataItem, ...props }: BudgetCellProps) => {
+  if (dataItem && dataItem.target !== undefined) {
+    const budget = dataItem.target;
+    const formattedBudget = `$${budget.toFixed(3)}`;
+    return <td {...props.tdProps}>{formattedBudget}</td>;
+  }
+};
+
+export const ColumnMenu: React.FC<ColumnMenuProps> = (props: ColumnMenuProps) => {
+  return (
+    <div>
+      <GridColumnMenuSort {...props as any} />
+      <GridColumnMenuFilter {...props as any} />
+      <GridColumnMenuGroup {...props as any} />
+    </div>
+  );
+};
+
+interface PersonCellProps {
+    dataItem: {
+      image?: string;
+      full_name?: string;
+    };
+    tdProps: React.HTMLAttributes<HTMLTableCellElement>;
+}
+
+export const PersonCell:React.FC<PersonCellProps> = ({ dataItem, ...props }) => {
+  if (!dataItem || !dataItem.image) {
+    return dataItem.full_name;
+  }
+
+  const imageDataUrl = dataItem.image.replace(/url\('(.*)'\)/, '$1');
+  return (
+    <td {...props.tdProps}>
+      <img src={imageDataUrl} width="34" height="34" className="contact-img" />
+      <span
+        style={{
+          display: 'inlineBlock',
+          paddingLeft: '10px',
+          verticalAlign: 'middle',
+          lineHeight: '32px',
+        }}
+        className="person-name"
+      >
+        {dataItem.full_name}
+      </span>
+    </td>
+  );
+};
+
+interface ProgressCellProps {
+    dataItem: {
+      target?: number;
+    };
+    tdProps: React.HTMLAttributes<HTMLTableCellElement>;
+    rowType: string;
+  }
+
+export const ProgressCell: React.FC<ProgressCellProps> = (props: ProgressCellProps) => {
+  const progress = props.dataItem.target;
+  if (props.rowType === 'groupHeader') {
+    return;
+  }
+  return (
+    <td {...props.tdProps}>
+      <ProgressBar
+        style={{
+          width: '150px',
+          height: '10px',
+          marginRight: '20px',
+        }}
+        value={progress}
+        labelVisible={false}
+      />
+      {progress} %<span> </span>
+    </td>
+  );
+};
+
+interface RatingCellProps {
+    dataItem: {
+      [key: string]: number | null;
+    };
+    field: string;
+    tdProps: React.HTMLAttributes<HTMLTableCellElement>;
+    rowType: string;
+  }
+
+export const RatingCell: React.FC<RatingCellProps> = (props: RatingCellProps) => {
+//   const field = props.field || '';
+//   const value = props.dataItem[field];
+const field = props.field || '';
+  const rawValue = props.dataItem[field];
+  const value = rawValue !== null && rawValue !== undefined ? Number(rawValue) : undefined;
+  if (props.rowType === 'groupHeader') {
+    return null;
+  }
+  return (
+    <td {...props.tdProps}>
+      <Rating
+        value={value}
+        readonly={true}
+      />{' '}
+    </td>
+  );
+};
+
+
+interface CountryCellProps {
+    dataItem: {
+      flag?: string;
+    };
+    tdProps: React.HTMLAttributes<HTMLTableCellElement>;
+  }
+
+export const CountryCell: React.FC<CountryCellProps> = ({ dataItem, ...props }: CountryCellProps) => {
+  if (!dataItem || !dataItem.flag) {
+    return null;
+  }
+
+  return (
+    <td {...props.tdProps}>
+      <img
+        src={dataItem.flag}
+        width="30"
+        height="16"
+        alt="Flag"
+        style={{
+          marginLeft: '12px',
+        }}
+      />
+    </td>
+  );
+};
