@@ -1,4 +1,17 @@
+.register-data-source-list {
+    .heading {
+        background-color: #00052b;
+        color: #ffffff;
+        text-align: center;
+        padding: 10px 0;
+        text-transform: capitalize;
+        font-size: 18px;
+    }
+    margin-bottom: 20px;
+}
+
 .register-data-source-form {
+    .k-form-field { width: 45%; }
     .k-form-legend {
         &.heading {
             background-color: #00052b;
