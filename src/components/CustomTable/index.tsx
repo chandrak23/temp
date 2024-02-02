@@ -27,6 +27,10 @@ import { setGroupIds, setExpandedState } from "@progress/kendo-react-data-tools"
 import { employees } from "./employees";
 import "./style.css";
 
+// 
+npm install --save @progress/kendo-react-editor @progress/kendo-react-intl @progress/kendo-react-buttons @progress/kendo-react-dropdowns @progress/kendo-react-dialogs @progress/kendo-react-inputs @progress/kendo-react-layout @progress/kendo-react-popup @progress/kendo-react-pdf @progress/kendo-react-progressbars @progress/kendo-drawing @progress/kendo-licensing @progress/kendo-svg-icons
+//
+
 const DATA_ITEM_KEY = "id";
 const SELECTED_FIELD = "selected";
 
