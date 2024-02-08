@@ -1,21 +1,11 @@
 // @ts-nocheck
 import * as React from "react";
-import * as ReactDOM from "react-dom";
 import { getter } from "@progress/kendo-react-common";
 import { DataResult, process, State } from "@progress/kendo-data-query";
 import { Input } from "@progress/kendo-react-inputs";
-import { GridPDFExport } from "@progress/kendo-react-pdf";
 import { ExcelExport } from "@progress/kendo-react-excel-export";
 import { Button } from "@progress/kendo-react-buttons";
-import {
-  BadgeCell,
-  BudgetCell,
-  ColumnMenu,
-  PersonCell,
-  ProgressCell,
-  RatingCell,
-  CountryCell,
-} from "./custom-cells";
+import { ColumnMenu } from "./custom-cells";
 import {
   Grid,
   GridColumn as Column,
@@ -24,15 +14,7 @@ import {
 } from "@progress/kendo-react-grid";
 import { setGroupIds, setExpandedState } from "@progress/kendo-react-data-tools";
 
-import { employees } from "./employees";
 import "./style.css";
-
-// 
-npm install --save @progress/kendo-react-editor @progress/kendo-react-intl @progress/kendo-react-buttons @progress/kendo-react-dropdowns @progress/kendo-react-dialogs @progress/kendo-react-inputs @progress/kendo-react-layout @progress/kendo-react-popup @progress/kendo-react-pdf @progress/kendo-react-progressbars @progress/kendo-drawing @progress/kendo-licensing @progress/kendo-svg-icons
-//
-
-const DATA_ITEM_KEY = "id";
-const SELECTED_FIELD = "selected";
 
 const initialDataState: State = {
   take: 10,
@@ -48,11 +30,18 @@ const processWithGroups = (data, dataState: State) => {
   return newDataState;
 };
 
-const CustomTable = () => {
-  const idGetter = getter("id");
+const CustomTable = (props) => {
+  const {
+    tableConfig: { dataItemKey, isItemSelected, headerConfig },
+    tableData,
+  } = props;
+
+  const DATA_ITEM_KEY = dataItemKey || "id";
+  const SELECTED_FIELD = "selected";
+  const idGetter = getter(DATA_ITEM_KEY);
 
   const [filterValue, setFilterValue] = React.useState();
-  const [filteredData, setFilteredData] = React.useState(employees);
+  const [filteredData, setFilteredData] = React.useState(tableData);
   const [currentSelectedState, setCurrentSelectedState] = React.useState<{
     [id: string]: boolean | number[];
   }>({});
@@ -64,7 +53,7 @@ const CustomTable = () => {
   const onFilterChange = (ev) => {
     let value = ev.value;
     setFilterValue(ev.value);
-    let newData = employees.filter((item) => {
+    let newData = tableData.filter((item) => {
       let match = false;
       for (const property in item) {
         if (item[property].toString().toLocaleLowerCase().indexOf(value.toLocaleLowerCase()) >= 0) {
@@ -90,7 +79,7 @@ const CustomTable = () => {
 
   const [resultState, setResultState] = React.useState<DataResult>(
     processWithGroups(
-      employees.map((item) => ({
+      tableData.map((item) => ({
         ...item,
         selected: currentSelectedState[idGetter(item)],
       })),
@@ -217,20 +206,16 @@ const CustomTable = () => {
     return newData.length > 0 && selectedItems == getNumberOfItems(newData);
   };
 
-  let _pdfExport;
   const exportExcel = () => {
     _export.save();
   };
 
   let _export;
-  const exportPDF = () => {
-    _pdfExport.save();
-  };
 
   return (
     <div>
       <ExcelExport
-        data={employees}
+        data={tableData}
         ref={(exporter) => {
           _export = exporter;
         }}
@@ -267,202 +252,37 @@ const CustomTable = () => {
             />
             <div className="export-btns-container">
               <Button onClick={exportExcel}>Export to Excel</Button>
-              <Button onClick={exportPDF}>Export to PDF</Button>
+              {/* <Button onClick={exportPDF}>Export to PDF</Button> */}
             </div>
           </GridToolbar>
-          <Column
-            filterable={false}
-            field={SELECTED_FIELD}
-            width={50}
-            headerSelectionValue={checkHeaderSelectionValue()}
-          />
+          {isItemSelected && (
+            <Column
+              filterable={false}
+              field={SELECTED_FIELD}
+              width={50}
+              headerSelectionValue={checkHeaderSelectionValue()}
+            />
+          )}
+          {/* <Column
+            field="full_name"
+            title="Contact Name"
+            columnMenu={ColumnMenu}
+            cells={{
+              data: PersonCell,
+            }}
+            width="250px"
+          /> */}
 
-          <Column title="Employee">
+          {headerConfig?.map((config) => (
             <Column
-              field="full_name"
-              title="Contact Name"
+              field={config?.field}
+              title={config?.title}
               columnMenu={ColumnMenu}
-              cells={{
-                data: PersonCell,
-              }}
-              width="250px"
+              width={config?.width}
             />
-            <Column field="job_title" title="Job Title" columnMenu={ColumnMenu} width="220px" />
-            <Column
-              field="country"
-              title="Country"
-              cells={{
-                data: CountryCell,
-              }}
-              columnMenu={ColumnMenu}
-              width="100px"
-            />
-            <Column
-              field="is_online"
-              title="Status"
-              filter="text"
-              cells={{
-                data: BudgetCell,
-              }}
-              columnMenu={ColumnMenu}
-              width="100px"
-            />
-          </Column>
-          <Column title="Perforamnce">
-            <Column
-              field="rating"
-              title="Rating"
-              cells={{
-                data: RatingCell,
-              }}
-              columnMenu={ColumnMenu}
-              width="230px"
-            />
-            <Column
-              field="target"
-              title="Engagement"
-              cells={{
-                data: ProgressCell,
-              }}
-              columnMenu={ColumnMenu}
-              width="250px"
-            />
-            <Column
-              field="budget"
-              title="Budget"
-              columnMenu={ColumnMenu}
-              cells={{
-                data: BudgetCell,
-              }}
-              width="230px"
-            />
-          </Column>
-          <Column title="Contacts">
-            <Column field="phone" title="Phone" columnMenu={ColumnMenu} width="230px" />
-            <Column field="address" title="Address" columnMenu={ColumnMenu} width="230px" />
-          </Column>
+          ))}
         </Grid>
       </ExcelExport>
-      <GridPDFExport
-        ref={(element) => {
-          _pdfExport = element;
-        }}
-        margin="1cm"
-      >
-        <Grid
-          style={{ height: "500px" }}
-          pageable={{ pageSizes: true }}
-          data={dataResult}
-          sortable={true}
-          total={resultState.total}
-          onDataStateChange={dataStateChange}
-          {...dataState}
-          onExpandChange={onExpandChange}
-          expandField="expanded"
-          dataItemKey={DATA_ITEM_KEY}
-          selectedField={SELECTED_FIELD}
-          onHeaderSelectionChange={onHeaderSelectionChange}
-          onSelectionChange={onSelectionChange}
-          groupable={true}
-          size={"small"}
-        >
-          <GridToolbar>
-            <Input
-              value={filterValue}
-              onChange={onFilterChange}
-              style={{
-                border: "2px solid #ccc",
-                boxShadow: "inset 0px 0px 0.5px 0px rgba(0,0,0,0.0.1)",
-                width: "170px",
-                height: "30px",
-                marginRight: "10px",
-              }}
-              placeholder="Search in all columns..."
-            />
-            <div className="export-btns-container">
-              <Button onClick={exportExcel}>Export to Excel</Button>
-              <Button>Export to PDF</Button>
-            </div>
-          </GridToolbar>
-          <Column
-            filterable={false}
-            field={SELECTED_FIELD}
-            width={50}
-            headerSelectionValue={checkHeaderSelectionValue()}
-          />
-          <Column title="Employee">
-            <Column
-              field="full_name"
-              title="Contact Name"
-              columnMenu={ColumnMenu}
-              cells={{
-                data: CountryCell,
-              }}
-              width="250px"
-            />
-            <Column
-              field="job_title"
-              title="Job Title"
-              filter="numeric"
-              columnMenu={ColumnMenu}
-              width="220px"
-            />
-            <Column
-              field="flag"
-              title="Country"
-              filter="numeric"
-              cells={{
-                data: CountryCell,
-              }}
-              columnMenu={ColumnMenu}
-              width="100px"
-            />
-            <Column
-              field="is_online"
-              title="Status"
-              filter="text"
-              cells={{
-                data: BadgeCell,
-              }}
-              columnMenu={ColumnMenu}
-              width="100px"
-            />
-          </Column>
-          <Column title="Perforamnce">
-            <Column
-              field="rating"
-              title="Rating"
-              cells={{
-                data: RatingCell,
-              }}
-              columnMenu={ColumnMenu}
-              width="230px"
-            />
-            <Column
-              field="target"
-              title="Engagement"
-              cells={{
-                data: ProgressCell,
-              }}
-              columnMenu={ColumnMenu}
-              width="250px"
-            />
-            <Column
-              field="budget"
-              title="Budget"
-              columnMenu={ColumnMenu}
-              cells={{
-                data: BudgetCell,
-              }}
-              width="230px"
-            />
-          </Column>
-          <Column title="Contacts">
-            <Column field="phone" title="Phone" columnMenu={ColumnMenu} width="230px" />
-            <Column field="address" title="Address" columnMenu={ColumnMenu} width="230px" />
-          </Column>
-        </Grid>
-      </GridPDFExport>
     </div>
   );
 };

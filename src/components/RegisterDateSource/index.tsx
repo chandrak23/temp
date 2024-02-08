@@ -7,15 +7,37 @@ import { FormInput, FormTextArea, FormDropDownList } from "../Form/form-componen
 
 import { nameValidator } from "../Form/validators";
 import CustomTable from "../CustomTable";
+import { tableConfig } from "./utill";
 
 const RegisterDateSource = () => {
+  const tableData = [
+    {
+      id: 1,
+      name: "john wick",
+      uid: "aad63f6f-c6b9-447a-9586-e40a217368b3",
+      type: "Type 1",
+      description: "sample description",
+      connection: "connection/oracle",
+      tags: "Tag 1, Tag 2",
+    },
+    {
+      id: 2,
+      name: "john smith",
+      uid: "aad63f6f-c6b9-447a-9586-340a217368b3",
+      type: "Type 2",
+      description: "sample description2",
+      connection: "connection/mysql",
+      tags: "Tag 3, Tag 4",
+    },
+  ];
+
   const handleSubmit = (dataItem: { [name: string]: any }) =>
     alert(JSON.stringify(dataItem, null, 2));
   return (
     <>
       <div className="register-data-source-list">
         <legend className={"heading"}>List existing Data source</legend>
-        <CustomTable />
+        <CustomTable tableConfig={tableConfig} tableData={tableData} />
       </div>
       <Form
         onSubmit={handleSubmit}
