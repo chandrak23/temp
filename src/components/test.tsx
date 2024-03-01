@@ -9,9 +9,10 @@ import { FilterDescriptor } from "@progress/kendo-data-query";
 interface FilterFormProps {
   columns: string[];
   operators: string[];
+  applyFilter: Function;
 }
 
-const FilterForm: React.FC<FilterFormProps> = ({ columns, operators }) => {
+const FilterForm: React.FC<FilterFormProps> = ({ columns, operators, applyFilter }) => {
   const [filters, setFilters] = useState<FilterDescriptor[]>([
     { field: "select", operator: "select", value: "" },
   ]);
@@ -34,8 +35,8 @@ const FilterForm: React.FC<FilterFormProps> = ({ columns, operators }) => {
 
   const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    alert(JSON.stringify(filters));
-    console.log(filters);
+    applyFilter(filters);
+    // console.log(filters);
   };
 
   return (
@@ -69,7 +70,9 @@ const FilterForm: React.FC<FilterFormProps> = ({ columns, operators }) => {
           <Button onClick={() => removeFilter(index)}>Delete</Button>
         </div>
       ))}
-      <Button onClick={addFilter}>Add Filter</Button>
+      <Button type="button" onClick={addFilter}>
+        Add Filter
+      </Button>
       <Button type="submit">Apply Filter</Button>
     </form>
   );
