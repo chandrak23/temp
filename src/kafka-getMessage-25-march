@@ -1,0 +1,20 @@
+async getMessage(id: string) {
+    return new Promise<string[]>(async (resolve, reject) => {
+        const messages = [];
+        await this.consumer.run({
+            eachMessage: async ({ topic, partition, message }) => {
+                if (message.key.toString() === id) {
+                    messages.push(message.value.toString());
+                }
+            },
+        });
+
+        // Wait for some time to collect messages
+        await new Promise((resolve) => setTimeout(resolve, 500)); // Adjust the time as needed
+
+        // Stop consuming messages
+        await this.consumer.stop();
+
+        resolve(messages);
+    });
+}
