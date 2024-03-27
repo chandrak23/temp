@@ -8,3 +8,17 @@ async findAll(tableName: string): Promise<any[]> {
       throw new Error(`Error executing query: ${error.message}`);
     }
   }
+
+
+====
+
+async findAll(tableName: string, page: number = 1, limit: number = 10): Promise<any[]> {
+  try {
+    const offset = (page - 1) * limit;
+    return await this.userRepository.query(`SELECT * FROM ${tableName} ORDER BY id OFFSET ${offset} ROWS FETCH NEXT ${limit} ROWS ONLY`);
+  } catch (error) {
+    throw new Error(`Error executing query: ${error.message}`);
+  }
+}
+
+const data = await this.databaseService.findAll('tableName', 2, 10);
