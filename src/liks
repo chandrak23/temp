@@ -22,3 +22,13 @@ async findAll(tableName: string, page: number = 1, limit: number = 10): Promise<
 }
 
 const data = await this.databaseService.findAll('tableName', 2, 10);
+
+
+
+====
+
+
+SELECT *
+FROM TableName
+ORDER BY column_name
+OFFSET 10 ROWS FETCH NEXT 10 ROWS ONLY;
