@@ -1,0 +1,68 @@
+//data.controller.ts
+
+
+// data.controller.ts
+import { Controller, Get, Param } from '@nestjs/common';
+import { DataService } from './data.service';
+
+@Controller('data')
+export class DataController {
+  constructor(private readonly dataService: DataService) {}
+
+  @Get(':tableName')
+  async getDataByTable(@Param('tableName') tableName: string) {
+    return await this.dataService.getDataByTable(tableName);
+  }
+}
+
+
+
+
+//     data.service.ts
+
+// data.service.ts
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { DynamicEntity } from './dynamic.entity';
+
+@Injectable()
+export class DataService {
+  constructor(
+    @InjectRepository(DynamicEntity)
+    private readonly dynamicRepository: Repository<DynamicEntity>,
+  ) {}
+
+  async getDataByTable(tableName: string): Promise<any[]> {
+    const dynamicEntity = await this.dynamicRepository.findOne({ where: { tableName } });
+    if (!dynamicEntity) {
+      throw new Error(`Table '${tableName}' not found.`);
+    }
+    return dynamicEntity.data;
+  }
+}
+
+
+
+
+
+
+app.module.ts
+
+// app.module.ts
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { DynamicEntity } from './data/dynamic.entity';
+import { DataService } from './data/data.service';
+import { DataController } from './data/data.controller';
+
+@Module({
+  imports: [TypeOrmModule.forRoot(), TypeOrmModule.forFeature([DynamicEntity])],
+  controllers: [DataController],
+  providers: [DataService],
+})
+export class AppModule {}
+
+
+
+
