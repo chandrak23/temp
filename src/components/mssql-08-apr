@@ -1,3 +1,40 @@
+npm install @nestjs/typeorm typeorm mssql reflect-metadata
+
+
+//  ormconfig.json
+
+{
+  "type": "mssql",
+  "host": "localhost",
+  "port": 1433,
+  "username": "your_username",
+  "password": "your_password",
+  "database": "your_database",
+  "entities": ["dist/**/*.entity{.ts,.js}"],
+  "synchronize": true
+}
+
+
+
+
+
+// dynamic.entity.ts
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+
+@Entity()
+export class DynamicEntity {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  tableName: string;
+
+  @Column('json')
+  data: Record<string, any>;
+}
+
+
+
 //data.controller.ts
 
 
