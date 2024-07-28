@@ -1,93 +1,114 @@
-// @ts-nocheck
-import React from "react";
-import { render, fireEvent, waitFor } from "@testing-library/react";
-import CustomTable from "../index";
+import React from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import CustomTable from './CustomTable'; // Adjust the import path as necessary
+import { DropDownList } from '@progress/kendo-react-dropdowns';
+import { Grid, GridToolbar, Column } from '@progress/kendo-react-grid';
+import '@testing-library/jest-dom/extend-expect';
 
-describe("CustomTable", () => {
-  const tableData = [
-    { id: 1, name: "John Doe", email: "john.doe@example.com" },
-    { id: 2, name: "Jane Doe", email: "jane.doe@example.com" },
-  ];
+const mockData = [
+  { id: 1, name: 'Item 1', selected: false },
+  { id: 2, name: 'Item 2', selected: false },
+];
 
-  const tableConfig = {
-    dataItemKey: "id",
-    isItemSelected: true,
-    headerConfig: [
-      { field: "name", title: "Name", width: "200px" },
-      { field: "email", title: "Email", width: "200px" },
-    ],
-  };
+const mockTableConfig = {
+  dataItemKey: 'id',
+  isItemSelected: true,
+  headerConfig: [
+    { field: 'name', title: 'Name', show: true, width: 150 },
+  ],
+};
 
-  it("renders grid with data", () => {
-    const { getByText } = render(<CustomTable tableData={tableData} tableConfig={tableConfig} />);
-    expect(getByText("John Doe")).toBeInTheDocument();
-    expect(getByText("Jane Doe")).toBeInTheDocument();
+const mockReportContextDropdown = {
+  enabled: true,
+  data: ['Option 1', 'Option 2'],
+  selected: 'Option 1',
+  onChange: jest.fn(),
+};
+
+const mockProps = {
+  tableConfig: mockTableConfig,
+  tableData: mockData,
+  hideToolbar: false,
+  refreshHandler: jest.fn(),
+  gridStyle: { height: '500px' },
+  reportContextDropdown: mockReportContextDropdown,
+  enableFul1Screen: true,
+  toggleFullScreen: jest.fn(),
+};
+
+describe('CustomTable Component', () => {
+  test('renders CustomTable with given data', () => {
+    render(<CustomTable {...mockProps} />);
+
+    expect(screen.getByText('Name')).toBeInTheDocument();
+    expect(screen.getByText('Item 1')).toBeInTheDocument();
+    expect(screen.getByText('Item 2')).toBeInTheDocument();
   });
 
-  it("renders grid with search input", () => {
-    const { getByPlaceholderText } = render(
-      <CustomTable tableData={tableData} tableConfig={tableConfig} />
-    );
-    expect(getByPlaceholderText("Search in all columns...")).toBeInTheDocument();
+  test('renders toolbar with refresh and fullscreen buttons', () => {
+    render(<CustomTable {...mockProps} />);
+
+    const refreshButton = screen.getByTitle('refresh');
+    const fullscreenButton = screen.getByText('View in Full Screen');
+
+    expect(refreshButton).toBeInTheDocument();
+    expect(fullscreenButton).toBeInTheDocument();
   });
 
-  it("renders grid with export button", () => {
-    const { getByText } = render(<CustomTable tableData={tableData} tableConfig={tableConfig} />);
-    expect(getByText("Export to Excel")).toBeInTheDocument();
+  test('calls refreshHandler on refresh button click', () => {
+    render(<CustomTable {...mockProps} />);
+
+    const refreshButton = screen.getByTitle('refresh');
+    fireEvent.click(refreshButton);
+
+    expect(mockProps.refreshHandler).toHaveBeenCalled();
   });
 
-  it("updates filterValue state when search input changes", () => {
-    const { getByPlaceholderText } = render(
-      <CustomTable tableData={tableData} tableConfig={tableConfig} />
-    );
-    const searchInput = getByPlaceholderText("Search in all columns...");
-    fireEvent.change(searchInput, { target: { value: "John" } });
-    expect(getByPlaceholderText("Search in all columns...").value).toBe("John");
+  test('calls toggleFullScreen on fullscreen button click', () => {
+    render(<CustomTable {...mockProps} />);
+
+    const fullscreenButton = screen.getByText('View in Full Screen');
+    fireEvent.click(fullscreenButton);
+
+    expect(mockProps.toggleFullScreen).toHaveBeenCalled();
   });
 
-  it("updates currentSelectedState when header checkbox is clicked", () => {
-    const { getByText } = render(<CustomTable tableData={tableData} tableConfig={tableConfig} />);
-    const headerCheckbox = getByText("Select All");
+  test('renders dropdown in toolbar and handles selection change', () => {
+    render(<CustomTable {...mockProps} />);
+
+    const dropdown = screen.getByRole('combobox');
+    expect(dropdown).toBeInTheDocument();
+
+    fireEvent.change(dropdown, { target: { value: 'Option 2' } });
+    expect(mockProps.reportContextDropdown.onChange).toHaveBeenCalled();
+  });
+
+  test('selects and deselects a row on click', () => {
+    render(<CustomTable {...mockProps} />);
+
+    const firstRowCheckbox = screen.getAllByRole('checkbox')[0];
+    fireEvent.click(firstRowCheckbox);
+
+    expect(firstRowCheckbox.checked).toBe(true);
+
+    fireEvent.click(firstRowCheckbox);
+    expect(firstRowCheckbox.checked).toBe(false);
+  });
+
+  test('selects and deselects all rows using header checkbox', () => {
+    render(<CustomTable {...mockProps} />);
+
+    const headerCheckbox = screen.getAllByRole('checkbox')[0];
     fireEvent.click(headerCheckbox);
-    expect(
-      getByText("John Doe").parentElement.querySelector('input[type="checkbox"]').checked
-    ).toBe(true);
+
+    const rowCheckboxes = screen.getAllByRole('checkbox').slice(1);
+    rowCheckboxes.forEach((checkbox) => {
+      expect(checkbox.checked).toBe(true);
+    });
+
+    fireEvent.click(headerCheckbox);
+    rowCheckboxes.forEach((checkbox) => {
+      expect(checkbox.checked).toBe(false);
+    });
   });
-  //   it("calls onSelectionChange when row is clicked", () => {
-  //     const onSelectionChange = jest.fn();
-  //     const { getByText } = render(
-  //       <CustomTable
-  //         tableData={tableData}
-  //         tableConfig={tableConfig}
-  //         onSelectionChange={onSelectionChange}
-  //       />
-  //     );
-  //     const row = getByText("John Doe");
-  //     fireEvent.click(row);
-  //     expect(onSelectionChange).toHaveBeenCalledTimes(1);
-  //   });
-
-  //   it("calls exportExcel when export button is clicked", () => {
-  //     const exportExcel = jest.fn();
-  //     const { getByText } = render(
-  //       <CustomTable tableData={tableData} tableConfig={tableConfig} exportExcel={exportExcel} />
-  //     );
-  //     const exportButton = getByText("Export to Excel");
-  //     fireEvent.click(exportButton);
-  //     expect(exportExcel).toHaveBeenCalledTimes(1);
-  //   });
-
-  //   it("renders grid with grouped data", async () => {
-  //     const tableData = [
-  //       { id: 1, name: "John Doe", email: "john.doe@example.com", group: "Group 1" },
-  //       { id: 2, name: "Jane Doe", email: "jane.doe@example.com", group: "Group 1" },
-  //       { id: 3, name: "Bob Smith", email: "bob.smith@example.com", group: "Group 2" },
-  //     ];
-  //     const { getByText, findByText } = render(
-  //       <CustomTable tableData={tableData} tableConfig={tableConfig} />
-  //     );
-  //     await findByText("Group 1");
-  //     expect(getByText("Group 1")).toBeInTheDocument();
-  //     expect(getByText("Group 2")).toBeInTheDocument();
-  //   });
 });
