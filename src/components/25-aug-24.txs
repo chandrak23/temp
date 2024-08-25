@@ -1,0 +1,83 @@
+import React from "react";
+import { render, screen } from "@testing-library/react";
+import { DateRangePicker } from "@progress/kendo-react-dateinputs";
+
+test("should render DateRangePicker component", () => {
+  render(<DateRangePicker />);
+  
+  // Verify the DateRangePicker component is rendered
+  const dateRangePicker = screen.getByRole("group"); // `group` is the role for a range input
+  expect(dateRangePicker).toBeInTheDocument();
+});
+
+
+
+import React from "react";
+import { render, screen } from "@testing-library/react";
+import { DateRangePicker } from "@progress/kendo-react-dateinputs";
+
+test("should display default date range value", () => {
+  const defaultValue = { start: new Date(2024, 7, 1), end: new Date(2024, 7, 15) };
+
+  render(<DateRangePicker defaultValue={defaultValue} />);
+
+  // Verify that the default date range is displayed
+  const startInput = screen.getByLabelText(/start date/i);
+  const endInput = screen.getByLabelText(/end date/i);
+
+  expect(startInput).toHaveValue("08/01/2024");
+  expect(endInput).toHaveValue("08/15/2024");
+});
+
+
+
+import React from "react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { DateRangePicker } from "@progress/kendo-react-dateinputs";
+
+test("should call onChange handler when date range is selected", () => {
+  const handleChange = jest.fn();
+  const defaultValue = { start: new Date(2024, 7, 1), end: new Date(2024, 7, 15) };
+
+  render(<DateRangePicker defaultValue={defaultValue} onChange={handleChange} />);
+
+  // Simulate user input to change the date range
+  const startInput = screen.getByLabelText(/start date/i);
+  const endInput = screen.getByLabelText(/end date/i);
+
+  // User changes the start date
+  userEvent.clear(startInput);
+  userEvent.type(startInput, "08/05/2024");
+
+  // User changes the end date
+  userEvent.clear(endInput);
+  userEvent.type(endInput, "08/20/2024");
+
+  // Verify the onChange handler is called
+  expect(handleChange).toHaveBeenCalled();
+  expect(handleChange).toHaveBeenCalledWith(
+    expect.objectContaining({
+      value: { start: new Date(2024, 7, 5), end: new Date(2024, 7, 20) },
+    })
+  );
+});
+
+
+
+import React from "react";
+import { render, screen } from "@testing-library/react";
+import { DateRangePicker } from "@progress/kendo-react-dateinputs";
+
+test("should not be interactable when disabled", () => {
+  render(<DateRangePicker disabled={true} />);
+
+  // Verify that the start and end inputs are disabled
+  const startInput = screen.getByLabelText(/start date/i);
+  const endInput = screen.getByLabelText(/end date/i);
+
+  expect(startInput).toBeDisabled();
+  expect(endInput).toBeDisabled();
+});
+
+
