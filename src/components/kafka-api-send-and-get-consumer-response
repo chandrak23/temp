@@ -1,0 +1,100 @@
+Improved Code with an In-Memory Store for Correlation
+
+
+import { Injectable } from '@nestjs/common';
+import { Kafka } from 'kafkajs';
+
+@Injectable()
+export class KafkaService {
+  private kafka = new Kafka({
+    clientId: 'my-app',
+    brokers: ['localhost:9092'],
+  });
+  
+  private producer = this.kafka.producer();
+  private consumer = this.kafka.consumer({ groupId: 'my-group' });
+  
+  // This Map will store promises for pending responses
+  private responseMap: Map<string, (response: any) => void> = new Map();
+
+  constructor() {
+    this.connectConsumer();  // Connect the consumer when service is initialized
+  }
+
+  // Function to send a message to a Kafka topic
+  async sendMessage(topic: string, message: string): Promise<void> {
+    await this.producer.connect();
+    await this.producer.send({
+      topic,
+      messages: [{ value: message }],
+    });
+    await this.producer.disconnect();
+  }
+
+  // Function to connect the consumer
+  private async connectConsumer() {
+    await this.consumer.connect();
+    await this.consumer.subscribe({ topic: 'response-topic', fromBeginning: false });
+
+    await this.consumer.run({
+      eachMessage: async ({ message }) => {
+        const responseMessage = message.value.toString();
+        // Extract some correlation ID from the responseMessage (assumed it's included)
+        const correlationId = this.getCorrelationIdFromMessage(responseMessage);
+
+        // Resolve the promise that is waiting for this specific response
+        const resolve = this.responseMap.get(correlationId);
+        if (resolve) {
+          resolve(responseMessage);  // Resolve the promise
+          this.responseMap.delete(correlationId);  // Remove it from the map
+        }
+      },
+    });
+  }
+
+  // Function to send data and wait for response
+  async sendMessageAndWaitForResponse(topic: string, message: string, correlationId: string): Promise<any> {
+    // Store the promise resolver for this correlation ID
+    return new Promise(async (resolve, reject) => {
+      // Add the resolver function to the map so the consumer can resolve it
+      this.responseMap.set(correlationId, resolve);
+
+      // Send the message with the correlation ID
+      await this.sendMessage(topic, JSON.stringify({ ...JSON.parse(message), correlationId }));
+    });
+  }
+
+  // A helper function to extract correlation ID from the message
+  private getCorrelationIdFromMessage(message: string): string {
+    const parsedMessage = JSON.parse(message);
+    return parsedMessage.correlationId; // Assuming the message contains a correlationId field
+  }
+}
+
+
+
+
+================
+
+Example Usage in Controller
+
+
+import { Controller, Post, Body } from '@nestjs/common';
+import { KafkaService } from './kafka.service';
+import { v4 as uuidv4 } from 'uuid';  // To generate unique correlation IDs
+
+@Controller('data')
+export class DataController {
+  constructor(private readonly kafkaService: KafkaService) {}
+
+  @Post('send')
+  async sendData(@Body() data: any): Promise<any> {
+    const correlationId = uuidv4();  // Generate a unique correlation ID
+
+    // Send data and wait for the response from Kafka
+    const response = await this.kafkaService.sendMessageAndWaitForResponse('request-topic', JSON.stringify(data), correlationId);
+    
+    // Send the response back to the API client
+    return { status: 'success', response };
+  }
+}
