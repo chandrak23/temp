@@ -1,0 +1,34 @@
+const execFilter = (filterData: any) => {
+    const filter = _.cloneDeep(filterData);
+
+    if (filter.filters) {
+        filter.filters = filter.filters.map((i: any) => execFilter(i));
+        return filter;
+    } else {
+        if (filter.value !== undefined && filter.value !== null) {
+            const columnData = filterDatatype.find(
+                ({ portalColumn }: { portalColumn: string }) => portalColumn === filter.field
+            ) || { dataType: 'string' };
+
+            if (columnData.dataType === 'date') {
+                try {
+                    const formattedDate = moment(filter.value).isValid()
+                        ? moment(filter.value).format('YYYY-MM-DD')
+                        : filter.value;
+                    filter.value = `${formattedDate}Z`;
+                } catch (error) {
+                    console.error('Date formatting error:', error);
+                    filter.value = filter.value.toString();
+                }
+            } else if (typeof filter.value !== 'string') {
+                try {
+                    filter.value = filter.value.toString();
+                } catch (error) {
+                    console.error('Value conversion error:', error);
+                    filter.value = String(filter.value);
+                }
+            }
+        }
+        return filter;
+    }
+};
