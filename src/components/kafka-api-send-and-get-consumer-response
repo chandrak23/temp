@@ -1,0 +1,83 @@
+@Post('send-message')
+  async sendMessage(@Body() message: string) {
+    // Create a unique correlation ID for the request
+    const correlationId = Math.random().toString(36).substr(2, 9);
+    console.log('*** -------------> correlationId', correlationId)
+    await this.kafkaService.sendMessage('topic_0', message, correlationId);
+    // return { message: 'Message sent successfully!' };
+    // Consume the response
+    const response = await this.kafkaService.consume('topic_0', correlationId);
+
+    // Return the response
+    return response;
+  }
+
+===============================================================================>
+
+// kafka.service.ts
+import { Injectable } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { Kafka } from 'kafkajs';
+
+@Injectable()
+export class KafkaService {
+  private producer: any;
+  private consumer: any;
+
+  constructor(@Inject(Kafka) private readonly kafkaClient: Kafka) {}
+
+  async connectProducer() {
+    this.producer = this.kafkaClient.producer();
+    await this.producer.connect();
+  }
+
+  async connectConsumer(groupId: string) {
+    this.consumer = this.kafkaClient.consumer({ groupId });
+    await this.consumer.connect();
+    await this.consumer.subscribe({ topic: 'topic_0', fromBeginning: true });
+  }
+
+  async sendMessage(topic: string, message: any, correlationId: string) {
+    await this.connectProducer();
+    await this.producer.send({
+      topic,
+      messages: [{
+        value: JSON.stringify(message),
+        headers: { correlationId }
+       }],
+    });
+  }
+
+  async consumeMessage(groupId: string) {
+    await this.connectConsumer(groupId);
+    await this.consumer.run({
+      eachMessage: async ({ topic, partition, message }) => {
+        console.log(`Received key ${message.kay} message: ${message.value}`);
+      },
+    });
+  }
+
+  async consume(topic: string, correlationId: string) {
+    try {
+      this.consumer = this.kafkaClient.consumer({ groupId: 'response-group' });
+      await this.consumer.connect();
+      await this.consumer.subscribe({ topic, fromBeginning: true });
+  
+      // Use the correlationId to filter out messages
+      return new Promise((resolve, reject) => {
+        this.consumer.run({
+          eachMessage: async ({ topic, partition, message }) => {
+            console.log('*********************************************************************************************************************************');
+            console.log('*** message.headers', JSON.stringify(message.headers), JSON.stringify(message.value));
+            const correlationIdFromMessage = message.headers.correlationId.toString();
+            if (correlationIdFromMessage === correlationId) {
+              resolve(message.value.toString());
+            }
+          },
+        });
+      });
+    } catch (error) {
+      console.error('Error consuming message:', error);
+    }
+  }
+}

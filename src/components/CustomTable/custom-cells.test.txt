@@ -1,0 +1,52 @@
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import { ColumnMenu, CaseIdCell } from './YourComponentFile'; // Adjust the import path as necessary
+import '@testing-library/jest-dom/extend-expect';
+import { GridColumnMenuSort, GridColumnMenuFilter, GridColumnMenuGroup } from "@progress/kendo-react-grid";
+
+// Mock the Kendo UI GridColumnMenu components
+jest.mock('@progress/kendo-react-grid', () => ({
+  GridColumnMenuSort: (props) => <div data-testid="GridColumnMenuSort" {...props} />,
+  GridColumnMenuFilter: (props) => <div data-testid="GridColumnMenuFilter" {...props} />,
+  GridColumnMenuGroup: (props) => <div data-testid="GridColumnMenuGroup" {...props} />,
+}));
+
+const mockDataItem = {
+  caseID: '12345',
+  caseRefId: '67890'
+};
+
+const mockCaseIdCellProps = {
+  dataItem: mockDataItem,
+  style: { color: 'blue' },
+  className: 'case-id-cell',
+  tdProps: { 'data-testid': 'td' }
+};
+
+describe('ColumnMenu Component', () => {
+  test('renders GridColumnMenuSort, GridColumnMenuFilter, and GridColumnMenuGroup', () => {
+    render(<ColumnMenu />);
+
+    expect(screen.getByTestId('GridColumnMenuSort')).toBeInTheDocument();
+    expect(screen.getByTestId('GridColumnMenuFilter')).toBeInTheDocument();
+    expect(screen.getByTestId('GridColumnMenuGroup')).toBeInTheDocument();
+  });
+});
+
+describe('CaseIdCell Component', () => {
+  test('renders a table cell with a link to the correct URL', () => {
+    render(<CaseIdCell {...mockCaseIdCellProps} />);
+
+    const linkElement = screen.getByRole('link', { name: mockDataItem.caseID });
+    expect(linkElement).toBeInTheDocument();
+    expect(linkElement).toHaveAttribute('href', `#http://localhost:90//breach-work-basket/dq-breach-case/${mockDataItem.caseID}/${mockDataItem.caseRefId}`);
+  });
+
+  test('applies the correct styles and className to the table cell', () => {
+    render(<CaseIdCell {...mockCaseIdCellProps} />);
+
+    const tdElement = screen.getByTestId('td');
+    expect(tdElement).toHaveStyle({ color: 'blue' });
+    expect(tdElement).toHaveClass('case-id-cell');
+  });
+});
