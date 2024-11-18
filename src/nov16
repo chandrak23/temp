@@ -62,3 +62,52 @@ export class FileController {
     return { message: 'File uploaded successfully', result };
   }
 }
+
+
+
+async processFile(file: Express.Multer.File): Promise<{
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  buffer: Buffer;
+  size: number;
+}> {
+  const fileExtension = path.extname(file.originalname).toLowerCase();
+
+  if (fileExtension === '.xls' || fileExtension === '.xlsx') {
+    // Convert xls/xlsx to CSV
+    const csvBuffer = this.convertExcelToCsv(file);
+
+    // Return updated file object with CSV buffer
+    return {
+      fieldname: file.fieldname,
+      originalname: file.originalname,
+      encoding: file.encoding,
+      mimetype: 'text/csv', // Update mimetype to CSV
+      buffer: csvBuffer,
+      size: csvBuffer.length,
+    };
+  } else if (fileExtension === '.csv') {
+    // If it's already a CSV, return the original file
+    return {
+      fieldname: file.fieldname,
+      originalname: file.originalname,
+      encoding: file.encoding,
+      mimetype: file.mimetype,
+      buffer: file.buffer,
+      size: file.size,
+    };
+  } else {
+    throw new Error('Unsupported file format. Only CSV, XLS, and XLSX are allowed.');
+  }
+}
+
+private convertExcelToCsv(file: Express.Multer.File): Buffer {
+  // Read the file buffer
+  const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+  // Convert the first sheet to CSV
+  const sheetName = workbook.SheetNames[0];
+  const csvData = XLSX.utils.sheet_to_csv(workbook.Sheets[sheetName]);
+  return Buffer.from(csvData, 'utf-8');
+}
