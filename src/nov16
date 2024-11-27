@@ -111,3 +111,22 @@ private convertExcelToCsv(file: Express.Multer.File): Buffer {
   const csvData = XLSX.utils.sheet_to_csv(workbook.Sheets[sheetName]);
   return Buffer.from(csvData, 'utf-8');
 }
+
+
+Given:
+
+The user uploads a document through the breach upload flow.
+The backend saves the uploaded file to a specified path.
+The Kafka request is sent with details including uuid, file upload path, breachuuid, nifiuuid, and requestedBy.
+The Python service processes the file, transforms it, and merges the data into the dataset displayed in the grid.
+The breachUploadRequest collection is updated with the status (in-progress initially).
+When:
+
+The Python service completes the transformation and updates the breachUploadRequest collection status to completed.
+The UI makes a GraphQL (GQL) call every 60 seconds in the background to check the status of the breachUploadRequest collection.
+Then:
+
+Once the breachUploadRequest collection status is updated to completed:
+A toast notification is displayed to the user stating, "File transformation and update completed successfully."
+The grid data is refreshed automatically without requiring a manual refresh from the user.
+The transformed data is displayed seamlessly in the updated grid.
