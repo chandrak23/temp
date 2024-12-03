@@ -1,132 +1,17 @@
-import { Injectable } from '@nestjs/common';
-import * as XLSX from 'xlsx';
-import * as fs from 'fs';
-import * as path from 'path';
-
-@Injectable()
-export class FileService {
-  async processFile(file: Express.Multer.File): Promise<Buffer> {
-    const fileExtension = path.extname(file.originalname).toLowerCase();
-
-    if (fileExtension === '.xls' || fileExtension === '.xlsx') {
-      // Convert xls/xlsx to CSV
-      const csvBuffer = this.convertExcelToCsv(file);
-      return csvBuffer;
-    } else if (fileExtension === '.csv') {
-      // If it's already a CSV, pass it as is
-      return file.buffer;
-    } else {
-      throw new Error('Unsupported file format. Only CSV, XLS, and XLSX are allowed.');
-    }
-  }
-
-  private convertExcelToCsv(file: Express.Multer.File): Buffer {
-    // Read the file buffer
-    const workbook = XLSX.read(file.buffer, { type: 'buffer' });
-    // Convert the first sheet to CSV
-    const sheetName = workbook.SheetNames[0];
-    const csvData = XLSX.utils.sheet_to_csv(workbook.Sheets[sheetName]);
-    return Buffer.from(csvData, 'utf-8');
-  }
-}
-
-
-
-import axios from 'axios';
-
-async function sendToExternalApi(fileBuffer: Buffer) {
-  const response = await axios.post('https://external.api/upload', fileBuffer, {
-    headers: {
-      'Content-Type': 'text/csv',
-    },
-  });
-
-  return response.data;
-}
-
-
-
-import { Controller, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { FileService } from './file.service';
-
-@Controller('upload')
-export class FileController {
-  constructor(private readonly fileService: FileService) {}
-
-  @Post()
-  @UseInterceptors(FileInterceptor('file'))
-  async uploadFile(@UploadedFile() file: Express.Multer.File) {
-    const processedFile = await this.fileService.processFile(file);
-    const result = await sendToExternalApi(processedFile);
-    return { message: 'File uploaded successfully', result };
-  }
-}
-
-
-
-async processFile(file: Express.Multer.File): Promise<{
-  fieldname: string;
-  originalname: string;
-  encoding: string;
-  mimetype: string;
-  buffer: Buffer;
-  size: number;
-}> {
-  const fileExtension = path.extname(file.originalname).toLowerCase();
-
-  if (fileExtension === '.xls' || fileExtension === '.xlsx') {
-    // Convert xls/xlsx to CSV
-    const csvBuffer = this.convertExcelToCsv(file);
-
-    // Return updated file object with CSV buffer
-    return {
-      fieldname: file.fieldname,
-      originalname: file.originalname,
-      encoding: file.encoding,
-      mimetype: 'text/csv', // Update mimetype to CSV
-      buffer: csvBuffer,
-      size: csvBuffer.length,
-    };
-  } else if (fileExtension === '.csv') {
-    // If it's already a CSV, return the original file
-    return {
-      fieldname: file.fieldname,
-      originalname: file.originalname,
-      encoding: file.encoding,
-      mimetype: file.mimetype,
-      buffer: file.buffer,
-      size: file.size,
-    };
-  } else {
-    throw new Error('Unsupported file format. Only CSV, XLS, and XLSX are allowed.');
-  }
-}
-
-private convertExcelToCsv(file: Express.Multer.File): Buffer {
-  // Read the file buffer
-  const workbook = XLSX.read(file.buffer, { type: 'buffer' });
-  // Convert the first sheet to CSV
-  const sheetName = workbook.SheetNames[0];
-  const csvData = XLSX.utils.sheet_to_csv(workbook.Sheets[sheetName]);
-  return Buffer.from(csvData, 'utf-8');
-}
-
-
-Given:
-
-The user uploads a document through the breach upload flow.
-The backend saves the uploaded file to a specified path.
-The Kafka request is sent with details including uuid, file upload path, breachuuid, nifiuuid, and requestedBy.
-The Python service processes the file, transforms it, and merges the data into the dataset displayed in the grid.
-The breachUploadRequest collection is updated with the status (in-progress initially).
-When:
-
-The Python service completes the transformation and updates the breachUploadRequest collection status to completed.
-The UI makes a GraphQL (GQL) call every 60 seconds in the background to check the status of the breachUploadRequest collection.
-Then:
-
-Once the breachUploadRequest collection status is updated to completed:
-A toast notification is displayed to the user stating, "File transformation and update completed successfully."
-The grid data is refreshed automatically without requiring a manual refresh from the user.
-The transformed data is displayed seamlessly in the updated grid.
+Item ID	Test Case ID	Test Case Name	Test Script	Execution Date/Time	Result
+DQT-968	UTR-1	dq_svc base setup initialization	Step 1: Navigate to this repository link (<repository URL>) and clone the repository in a new folder using the git clone command. If the repository is already cloned, proceed to Step 2.
+Step 2: Once the repository is cloned, checkout to the branch: git checkout release/dq-svc-base-setup.
+Step 3: Run npm install --legacy-peer-deps followed by npm run build.
+Step 4: Post npm run build, verify that the service builds successfully without any errors.	2024-12-03T14:30:00	Pass
+DQT-968	UTR-2	GraphQL endpoint creation and validation	Step 1: Start the NestJS service locally using npm start.
+Step 2: Access the /graphql endpoint via a browser or Postman.
+Step 3: Execute a health check query ({ healthCheck }).
+Step 4: Verify the response, which should return a valid status such as {"status":"healthy"}.	2024-12-03T15:00:00	Pass
+DQT-968	UTR-3	Error handling for GraphQL queries	Step 1: Start the NestJS service locally using npm start.
+Step 2: Send an invalid GraphQL query to the endpoint.
+Step 3: Observe the error response.
+Step 4: Verify that the error response is meaningful and descriptive without crashing the service.	2024-12-03T15:30:00	Pass
+DQT-968	UTR-4	Integration with UI network calls	Step 1: Deploy the service and configure it with the UI project.
+Step 2: Trigger a network call from the UI that interacts with the backend.
+Step 3: Verify the backend processes the request and returns the appropriate response.
+Step 4: Ensure the response is displayed correctly on the UI.	2024-12-03T16:00:00	Pass
