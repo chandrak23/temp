@@ -1,17 +1,1 @@
-Item ID	Test Case ID	Test Case Name	Test Script	Execution Date/Time	Result
-DQT-968	UTR-1	dq_svc base setup initialization	Step 1: Navigate to this repository link (<repository URL>) and clone the repository in a new folder using the git clone command. If the repository is already cloned, proceed to Step 2.
-Step 2: Once the repository is cloned, checkout to the branch: git checkout release/dq-svc-base-setup.
-Step 3: Run npm install --legacy-peer-deps followed by npm run build.
-Step 4: Post npm run build, verify that the service builds successfully without any errors.	2024-12-03T14:30:00	Pass
-DQT-968	UTR-2	GraphQL endpoint creation and validation	Step 1: Start the NestJS service locally using npm start.
-Step 2: Access the /graphql endpoint via a browser or Postman.
-Step 3: Execute a health check query ({ healthCheck }).
-Step 4: Verify the response, which should return a valid status such as {"status":"healthy"}.	2024-12-03T15:00:00	Pass
-DQT-968	UTR-3	Error handling for GraphQL queries	Step 1: Start the NestJS service locally using npm start.
-Step 2: Send an invalid GraphQL query to the endpoint.
-Step 3: Observe the error response.
-Step 4: Verify that the error response is meaningful and descriptive without crashing the service.	2024-12-03T15:30:00	Pass
-DQT-968	UTR-4	Integration with UI network calls	Step 1: Deploy the service and configure it with the UI project.
-Step 2: Trigger a network call from the UI that interacts with the backend.
-Step 3: Verify the backend processes the request and returns the appropriate response.
-Step 4: Ensure the response is displayed correctly on the UI.	2024-12-03T16:00:00	Pass
+
