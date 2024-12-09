@@ -265,3 +265,16 @@ describe('onColumnsSubmit function', () => {
     expect(getNumberOfSelectedItems(data)).toBe(2);
   });
 });
+
+
+import { Worker } from 'worker_threads';
+import { join } from 'path';
+
+// Determine the worker file path based on the environment
+const workerPath = process.env.NODE_ENV === 'production'
+  ? join(__dirname, 'kafka/worker.js') // Path in the dist folder for production
+  : join(__dirname, '../src/kafka/worker.ts'); // Path in the src folder for development
+
+// Create the worker
+const worker = new Worker(workerPath);
+
