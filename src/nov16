@@ -1,1 +1,46 @@
+npm install axios csv-stringify xlsx-stream fs
 
+
+import * as fs from 'fs';
+import * as XLSX from 'xlsx-stream';
+import * as stringify from 'csv-stringify';
+import axios from 'axios';
+import { Injectable } from '@nestjs/common';
+import * as FormData from 'form-data';
+
+@Injectable()
+export class UploadService {
+  private externalApiUrl = 'https://example.com/upload'; // Replace with your API URL
+
+  async streamXlsxToCsvAndSend(filePath: string): Promise<void> {
+    // Create input stream for XLSX file
+    const inputStream = fs.createReadStream(filePath);
+    const xlsxStream = XLSX.createInputStream();
+    const csvStream = stringify({ header: true });
+
+    // Combine XLSX streaming and CSV conversion
+    inputStream.pipe(xlsxStream).pipe(csvStream);
+
+    // Prepare FormData to send the CSV stream
+    const formData = new FormData();
+    formData.append('file', csvStream, {
+      filename: 'converted-file.csv',
+      contentType: 'text/csv',
+    });
+
+    try {
+      // Send the CSV stream directly to the external API
+      const response = await axios.post(this.externalApiUrl, formData, {
+        headers: {
+          ...formData.getHeaders(),
+        },
+        maxBodyLength: Infinity, // Important for large files
+        maxContentLength: Infinity,
+      });
+
+      console.log('File sent successfully:', response.data);
+    } catch (error) {
+      console.error('Error sending file to external API:', error.message);
+    }
+  }
+}
