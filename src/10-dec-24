@@ -1,9 +1,8 @@
-npm install @nestjs/platform-express multer axios xlsx-stream-reader uuid
-
-Controller
-============
+controller
++============
 
 import {
+  Get,
   Controller,
   Post,
   UploadedFile,
@@ -15,13 +14,10 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { AppService } from './app.service';
-import * as fs from 'fs';
+import * as multer from 'multer';
 
-@Controller('files')
-export class AppController {
-  constructor(private readonly appService: AppService) {}
 
-  @Post('upload')
+@Post('upload')
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
@@ -34,18 +30,21 @@ export class AppController {
     }),
   )
   async uploadFile(@UploadedFile() file: Express.Multer.File): Promise<any> {
+    console.log('**** file method hits');
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
 
     const fileExt = extname(file.originalname).toLowerCase();
     let tempCsvFilePath: string | undefined;
-
+    console.log('**** fileExt ', fileExt, file);
     try {
       if (fileExt === '.csv') {
         tempCsvFilePath = file.path; // Directly use the CSV file
       } else if (fileExt === '.xls' || fileExt === '.xlsx') {
+        console.log('**** found xlsx');
         tempCsvFilePath = await this.appService.convertXlsxToCsv(file.path); // Convert XLSX to CSV
+        console.log('**** file conversion done', tempCsvFilePath);
       } else {
         throw new BadRequestException('Unsupported file format');
       }
@@ -54,106 +53,100 @@ export class AppController {
       const response = await this.appService.sendCsvToExternalApi(tempCsvFilePath);
 
       return { success: true, data: response };
+      // return { success: true, data: tempCsvFilePath };
     } catch (error) {
       console.error('Error processing file:', error);
       throw new InternalServerErrorException('Error processing file');
     } finally {
       // Cleanup temporary files
-      if (tempCsvFilePath && tempCsvFilePath !== file.path) {
-        fs.unlink(tempCsvFilePath, (err) => {
-          if (err) console.error('Failed to delete temp CSV file:', err);
-        });
-      }
-      fs.unlink(file.path, (err) => {
-        if (err) console.error('Failed to delete uploaded file:', err);
-      });
+      // if (tempCsvFilePath && tempCsvFilePath !== file.path) {
+      //   fs.unlink(tempCsvFilePath, (err) => {
+      //     if (err) console.error('Failed to delete temp CSV file:', err);
+      //   });
+      // }
+      // fs.unlink(file.path, (err) => {
+      //   if (err) console.error('Failed to delete uploaded file:', err);
+      // });
     }
   }
-}
 
 
 
 
-Service
-=========================
+service code 
+===========
 
-
-import { Injectable } from '@nestjs/common';
-import * as XLSXStreamReader from 'xlsx-stream-reader';
+import * as ExcelJS from 'exceljs';
 import * as fs from 'fs';
+import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 import { createReadStream } from 'fs';
-import { join } from 'path';
+import * as csv from 'csv-parser'; // for reading we can ignore
+import { Readable } from 'stream';
+import * as FormData from 'form-data';
 
-@Injectable()
-export class AppService {
-  // Convert XLSX to CSV using streaming
-  async convertXlsxToCsv(filePath: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const workBookReader = new XLSXStreamReader();
-      const tempCsvFilePath = join('uploads', `${uuidv4()}.csv`);
-      const writeStream = fs.createWriteStream(tempCsvFilePath);
+async convertXlsxToCsv(filePath: string): Promise<string> {
+    const tempCsvFilePath = path.join('uploads', `${uuidv4()}.csv`);
+    const writeStream = fs.createWriteStream(tempCsvFilePath);
+    console.log('*** filePath', filePath)
+    const workbook = new ExcelJS.Workbook();
+    console.log('*** workbook', workbook)
+    await workbook.xlsx.readFile(filePath); // Load the Excel file
 
-      workBookReader.on('worksheet', (worksheet) => {
-        worksheet.on('row', (row) => {
-          const csvRow = row.values
-            .map((val) => (val === null ? '' : `"${String(val).replace(/"/g, '""')}"`))
-            .join(',');
-          writeStream.write(csvRow + '\n');
-        });
-
-        worksheet.on('end', () => {
-          workBookReader.removeAllListeners();
-        });
-      });
-
-      workBookReader.on('end', () => {
-        writeStream.end();
-        resolve(tempCsvFilePath);
-      });
-
-      workBookReader.on('error', (err) => {
-        reject(err);
-      });
-
-      fs.createReadStream(filePath).pipe(workBookReader);
+    const worksheet = workbook.worksheets[0]; // Get the first worksheet
+    worksheet.eachRow((row, rowNumber) => {
+      // console.log('*** row, rowNumber ==>', rowNumber, row.values);
+      const csvRow = (row.values as (string | number | null)[])
+      .slice(1) // Remove the first element (the empty item)
+      .map((val) => (val === null ? '' : `"${String(val).replace(/"/g, '""')}"`))
+      .join(',');
+      writeStream.write(csvRow + '\n');
     });
+
+    writeStream.end();
+    return tempCsvFilePath;
   }
 
-  // Send the CSV to an external API
-  async sendCsvToExternalApi(filePath: string): Promise<any> {
-    const externalApiUrl = 'https://example.com/external-api';
-    const stream = createReadStream(filePath);
 
-    const response = await axios.post(externalApiUrl, stream, {
+async sendCsvToExternalApi(filePath: string): Promise<any> {
+    const externalApiUrl = 'http://localhost:3000/csv-upload'; // External API URL
+
+    // Create a read stream for the file
+    const fileStream = createReadStream(filePath);
+    // Attach an error listener to the file stream to catch any errors
+    fileStream.on('error', (err) => {
+      console.error('Error with file stream:', err);
+    });
+
+    console.log('Sending file from:', filePath);
+
+    // Append the stream to the form data
+    // Create a FormData instance
+    const form = new FormData();
+    form.append('file', fileStream, {
+      filename: 'file.csv', // You can set the filename here
+      contentType: 'text/csv', // Set the appropriate content type
+    });
+
+    // console.log('*** form', form);
+
+  // Send the form data using axios
+  try {
+    const response = await axios.post(externalApiUrl, form, {
       headers: {
-        'Content-Type': 'text/csv',
+        ...form.getHeaders(), // Include the headers from form-data
       },
+      maxContentLength: Infinity, // Adjust as necessary
+      maxBodyLength: Infinity, // Adjust as necessary
     });
 
+    console.log('API response:', response.data);
     return response.data;
+  } catch (error) {
+    console.error('Error sending file to external API', error);
+    throw error;  // Rethrow the error for further handling if needed
   }
-}
 
 
-
-
-
-finally do not use for now
-=================
-
-
-finally {
-    // Cleanup the converted temporary CSV file
-    if (tempCsvFilePath && tempCsvFilePath !== file.path) {
-        fs.unlink(tempCsvFilePath, (err) => {
-            if (err) console.error('Failed to delete temp CSV file:', err);
-        });
-    }
-
-    // Cleanup the original uploaded file
-    fs.unlink(file.path, (err) => {
-        if (err) console.error('Failed to delete uploaded file:', err);
-    });
-}
+  }
